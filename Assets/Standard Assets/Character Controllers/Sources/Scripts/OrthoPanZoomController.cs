@@ -26,12 +26,14 @@ public class OrthoPanZoomController : MonoBehaviour {
 			pan (touchDeltaPosition);
 		} else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began) {
 			print ("Start Touch Move");
+			StopCoroutine("handleGlide");
 		} else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended) {
 			print ("End Touch Move");
 
 		// MOUSIES
 		} else if (Input.GetMouseButtonDown (0)) {
 			// User initiates panning the camera with a mouse
+			StopCoroutine("handleGlide");
 			addLastPos(Input.mousePosition);
 		} else if (Input.GetMouseButton (0)) {
 			// User pans with the mouse AFTER initiating
@@ -42,24 +44,35 @@ public class OrthoPanZoomController : MonoBehaviour {
 			}
 		} else if (Input.GetMouseButtonUp (0)) {
 			// User ends a panning movement with the mouse
+			Debug.Log("Starting Coroutine");
+			StartCoroutine("handleGlide");
+			Debug.Log("Coroutine Started!");
 		}
 
 		if(Input.touchCount == 0 && !Input.GetMouseButton(0)) {
-			handleGlide();
+			//handleGlide();
 		}
 	}
 
-	void handleGlide ()
+	IEnumerator handleGlide ()
 	{
-		if(vecs.Count > 0) {
+		Debug.Log("coroutine: handleGlide()");
+		if(vecs.Count > 0 && !touchExpired()) {
+			Debug.Log("coroutine: gliding");
 			glideStartTime = Time.time;
 			glideOrigin = transform.position;
 			glideMagnitude = getMagnitude();
 			glideVector = glideOrigin + (getVector() * 2);
 			vecs.Clear();
+			var fracComplete = (Time.time - glideStartTime) / glideJourneyTime;
+			while (fracComplete <= 1) {
+				transform.position = Vector3.Lerp(glideOrigin, glideVector, fracComplete);
+				fracComplete = (Time.time - glideStartTime) / glideJourneyTime;
+				Debug.Log("%complete: " + fracComplete*100);
+				yield return null;
+			}
 		}
-		var fracComplete = (Time.time - glideStartTime) / glideJourneyTime;
-		transform.position = Vector3.Lerp(glideOrigin, glideVector, fracComplete);
+
 	}
 
 	void pan (Vector3 touchDeltaPosition)
@@ -88,6 +101,11 @@ public class OrthoPanZoomController : MonoBehaviour {
 			return vecs.Last.Value.Key;
 		}
 		return Vector3.zero;
+	}
+
+	bool touchExpired ()
+	{
+		return (Time.time - vecs.Last.Value.Value) > 0.3F;
 	}
 
 	float getMagnitude ()
