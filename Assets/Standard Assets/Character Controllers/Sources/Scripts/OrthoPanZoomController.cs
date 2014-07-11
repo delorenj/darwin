@@ -3,8 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class OrthoPanZoomController : MonoBehaviour {
-	public float speed = 0.1F;
-	public float glideJourneyTime = 1F;
+	public float Speed = 0.1F;
+	public float GlideJourneyTime = 1F;
 
 	private LinkedList<KeyValuePair<Vector3, float> > vecs;
 	private float glideStartTime;
@@ -68,7 +68,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 			var fracComplete = 0.0F;
 			while (fracComplete <= 1.0F) {
 				transform.position = Vector3.Lerp(glideOrigin, glideVector, Mathfx.Sinerp(0, 1, fracComplete));
-				fracComplete = (Time.time - glideStartTime) / glideJourneyTime;
+				fracComplete = (Time.time - glideStartTime) / GlideJourneyTime;
 				yield return null;
 			}
 		}
@@ -77,7 +77,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	void pan (Vector3 touchDeltaPosition)
 	{
-		transform.Translate (-touchDeltaPosition.x * speed, -touchDeltaPosition.y * speed, 0);
+		transform.Translate (-touchDeltaPosition.x * Speed, -touchDeltaPosition.y * Speed, 0);
 	}
 
 	private void addLastPos(Vector3 lastPos) {
