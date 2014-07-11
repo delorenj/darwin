@@ -22,14 +22,18 @@ public class OrthoPanZoomController : MonoBehaviour {
 		// TOUCHIES
 		if (Input.touchCount > 0 && Input.GetTouch (0).phase == TouchPhase.Moved) {
 			// User is panning the camera with fingers
-			Vector3 touchDeltaPosition = Input.GetTouch (0).deltaPosition;
-			pan (touchDeltaPosition);
+			Vector3 delta = new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, 0) - getLastPos();
+			if(delta != Vector3.zero) {
+				addLastPos(new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, 0));
+				pan (delta);
+			}
 		} else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began) {
 			print ("Start Touch Move");
 			StopCoroutine("handleGlide");
+			addLastPos(new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, 0));
 		} else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended) {
 			print ("End Touch Move");
-
+			StartCoroutine("handleGlide");
 		// MOUSIES
 		} else if (Input.GetMouseButtonDown (0)) {
 			// User initiates panning the camera with a mouse
@@ -44,9 +48,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 			}
 		} else if (Input.GetMouseButtonUp (0)) {
 			// User ends a panning movement with the mouse
-			Debug.Log("Starting Coroutine");
 			StartCoroutine("handleGlide");
-			Debug.Log("Coroutine Started!");
 		}
 
 		if(Input.touchCount == 0 && !Input.GetMouseButton(0)) {
@@ -56,9 +58,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	IEnumerator handleGlide ()
 	{
-		Debug.Log("coroutine: handleGlide()");
 		if(vecs.Count > 0 && !touchExpired()) {
-			Debug.Log("coroutine: gliding");
 			glideStartTime = Time.time;
 			glideOrigin = transform.position;
 			glideMagnitudeX = -getMagnitudeX();
@@ -69,7 +69,6 @@ public class OrthoPanZoomController : MonoBehaviour {
 			while (fracComplete <= 1.0F) {
 				transform.position = Vector3.Lerp(glideOrigin, glideVector, Mathfx.Sinerp(0, 1, fracComplete));
 				fracComplete = (Time.time - glideStartTime) / glideJourneyTime;
-				Debug.Log("<color=yellow>%complete: " + fracComplete*100 + "</color>");
 				yield return null;
 			}
 		}
