@@ -8,7 +8,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	private LinkedList<KeyValuePair<Vector3, float> > vecs;
 	private float glideStartTime;
-	private float glideMagnitude;	// glide magnitude
+	private float glideMagnitudeX, glideMagnitudeY;	// glide magnitude
 	private Vector3 glideVector;	// glide direction vector
 	private Vector3 glideOrigin;	// glide start position
 
@@ -61,14 +61,15 @@ public class OrthoPanZoomController : MonoBehaviour {
 			Debug.Log("coroutine: gliding");
 			glideStartTime = Time.time;
 			glideOrigin = transform.position;
-			glideMagnitude = getMagnitude();
+			glideMagnitudeX = -getMagnitudeX();
+			glideMagnitudeY = -getMagnitudeY();
 			glideVector = glideOrigin + (getVector() * 2);
 			vecs.Clear();
-			var fracComplete = (Time.time - glideStartTime) / glideJourneyTime;
-			while (fracComplete <= 1) {
-				transform.position = Vector3.Lerp(glideOrigin, glideVector, fracComplete);
+			var fracComplete = 0.0F;
+			while (fracComplete <= 1.0F) {
+				transform.position = Vector3.Lerp(glideOrigin, glideVector, Mathfx.Sinerp(0, 1, fracComplete));
 				fracComplete = (Time.time - glideStartTime) / glideJourneyTime;
-				Debug.Log("%complete: " + fracComplete*100);
+				Debug.Log("<color=yellow>%complete: " + fracComplete*100 + "</color>");
 				yield return null;
 			}
 		}
@@ -105,16 +106,27 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	bool touchExpired ()
 	{
-		return (Time.time - vecs.Last.Value.Value) > 0.3F;
+		return (Time.time - vecs.Last.Value.Value) > 0.25F;
 	}
 
-	float getMagnitude ()
+	float getMagnitudeX ()
 	{
 		KeyValuePair<Vector3, float> e1, e2;
 		e1 = vecs.Last.Value;
 		e2 = vecs.First.Value;
 
-		var distance = Vector3.Distance (e1.Key, e2.Key);
+		var distance = (e2.Key.x - e1.Key.x);
+		var time = System.Math.Abs (e1.Value - e2.Value);
+		return distance/time;
+	}
+
+	float getMagnitudeY ()
+	{
+		KeyValuePair<Vector3, float> e1, e2;
+		e1 = vecs.Last.Value;
+		e2 = vecs.First.Value;
+		
+		var distance = (e2.Key.y - e1.Key.y);
 		var time = System.Math.Abs (e1.Value - e2.Value);
 		return distance/time;
 	}
