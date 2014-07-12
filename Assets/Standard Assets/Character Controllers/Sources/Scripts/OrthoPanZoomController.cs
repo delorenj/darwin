@@ -6,11 +6,14 @@ public class OrthoPanZoomController : MonoBehaviour {
 	public float Speed = 0.1F;
 	public float GlideJourneyTime = 1F;
 
+	private bool collideStop = false;
 	private LinkedList<KeyValuePair<Vector3, float> > vecs;
 	private float glideStartTime;
 	private float glideMagnitudeX, glideMagnitudeY;	// glide magnitude
 	private Vector3 glideVector;	// glide direction vector
-	private Vector3 glideOrigin;	// glide start position
+	private Vector3 glideOrigin;
+
+	// glide start position
 
 	// Use this for initialization
 	void Start () {
@@ -28,11 +31,9 @@ public class OrthoPanZoomController : MonoBehaviour {
 				pan (delta);
 			}
 		} else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began) {
-			print ("Start Touch Move");
 			StopCoroutine("handleGlide");
 			addLastPos(new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, 0));
 		} else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended) {
-			print ("End Touch Move");
 			StartCoroutine("handleGlide");
 		// MOUSIES
 		} else if (Input.GetMouseButtonDown (0)) {
@@ -49,10 +50,6 @@ public class OrthoPanZoomController : MonoBehaviour {
 		} else if (Input.GetMouseButtonUp (0)) {
 			// User ends a panning movement with the mouse
 			StartCoroutine("handleGlide");
-		}
-
-		if(Input.touchCount == 0 && !Input.GetMouseButton(0)) {
-			//handleGlide();
 		}
 	}
 
@@ -75,9 +72,16 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	}
 
-	void pan (Vector3 touchDeltaPosition)
-	{
-		transform.Translate (-touchDeltaPosition.x * Speed, -touchDeltaPosition.y * Speed, 0);
+	void pan (Vector3 touchDeltaPosition) {
+		if(transform.position.x - touchDeltaPosition.x * Speed <= -250 || transform.position.x  - touchDeltaPosition.x * Speed >= 250) {
+			touchDeltaPosition.x = 0;
+		}
+
+		if(transform.position.y - touchDeltaPosition.y * Speed <= 0 || transform.position.y  - touchDeltaPosition.y * Speed >= 250) {
+			touchDeltaPosition.y = 0;
+		}
+		
+		transform.Translate (-touchDeltaPosition.x * Speed, -touchDeltaPosition.y * Speed, 0);			
 	}
 
 	private void addLastPos(Vector3 lastPos) {
@@ -136,11 +140,5 @@ public class OrthoPanZoomController : MonoBehaviour {
 		e1 = vecs.Last.Value.Key;
 		e2 = vecs.First.Value.Key;
 		return e2 - e1;
-	}
-
-	void printVecs() {
-		foreach(var item in vecs) {
-			print ("Action List: " + item.Key.x + ", " + item.Key.y + " @ " + item.Value);
-		}
 	}
 }
