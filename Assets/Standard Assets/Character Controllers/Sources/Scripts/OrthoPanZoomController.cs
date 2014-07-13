@@ -13,11 +13,16 @@ public class OrthoPanZoomController : MonoBehaviour {
 	private Vector3 glideVector;	// glide direction vector
 	private Vector3 glideOrigin;
 
-	// glide start position
+	const float LEFT_BOUNDS = -160.0F;
+	const float RIGHT_BOUNDS = 180.0F;
+	const float TOP_BOUNDS = 180.0F;
+	const float BOTTOM_BOUNDS = 50.0F;
+	
 
 	// Use this for initialization
 	void Start () {
 		vecs = new LinkedList<KeyValuePair<Vector3, float> > ();
+		Camera.main.orthographicSize = 83;
 	}
 	
 	// Update is called once per frame
@@ -40,6 +45,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 			// User initiates panning the camera with a mouse
 			StopCoroutine("handleGlide");
 			addLastPos(Input.mousePosition);
+			print("x:" + transform.position.x + ", y:" + transform.position.y);
 		} else if (Input.GetMouseButton (0)) {
 			// User pans with the mouse AFTER initiating
 			Vector3 delta = Input.mousePosition - getLastPos();
@@ -47,9 +53,11 @@ public class OrthoPanZoomController : MonoBehaviour {
 				addLastPos(Input.mousePosition);
 				pan (delta);
 			}
+			print("x:" + transform.position.x + ", y:" + transform.position.y);
+			
 		} else if (Input.GetMouseButtonUp (0)) {
 			// User ends a panning movement with the mouse
-			StartCoroutine("handleGlide");
+			//StartCoroutine("handleGlide");
 		}
 	}
 
@@ -60,7 +68,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 			glideOrigin = transform.position;
 			glideMagnitudeX = -getMagnitudeX();
 			glideMagnitudeY = -getMagnitudeY();
-			glideVector = glideOrigin + (getVector() * 2);
+			glideVector = glideOrigin + (getVector() * 10);
 			vecs.Clear();
 			var fracComplete = 0.0F;
 			while (fracComplete <= 1.0F) {
@@ -73,15 +81,19 @@ public class OrthoPanZoomController : MonoBehaviour {
 	}
 
 	void pan (Vector3 touchDeltaPosition) {
-		if(transform.position.x - touchDeltaPosition.x * Speed <= -250 || transform.position.x  - touchDeltaPosition.x * Speed >= 250) {
-			touchDeltaPosition.x = 0;
+		Vector3 newPos = touchDeltaPosition * Speed;
+		
+		if(	transform.position.x - newPos.x < LEFT_BOUNDS || 
+			transform.position.x - newPos.x > RIGHT_BOUNDS) {
+				newPos.x = 0;
 		}
 
-		if(transform.position.y - touchDeltaPosition.y * Speed <= 0 || transform.position.y  - touchDeltaPosition.y * Speed >= 250) {
-			touchDeltaPosition.y = 0;
+		if(	transform.position.y - newPos.y < BOTTOM_BOUNDS || 
+			transform.position.y - newPos.y > TOP_BOUNDS) {
+				newPos.y = 0;
 		}
 		
-		transform.Translate (-touchDeltaPosition.x * Speed, -touchDeltaPosition.y * Speed, 0);			
+		transform.Translate (-newPos);			
 	}
 
 	private void addLastPos(Vector3 lastPos) {
