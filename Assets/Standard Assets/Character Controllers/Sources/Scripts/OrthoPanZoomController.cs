@@ -13,10 +13,10 @@ public class OrthoPanZoomController : MonoBehaviour {
 	private Vector3 glideVector;	// glide direction vector
 	private Vector3 glideOrigin;
 
-	const float LEFT_BOUNDS = -160.0F;
-	const float RIGHT_BOUNDS = 180.0F;
-	const float TOP_BOUNDS = 180.0F;
-	const float BOTTOM_BOUNDS = 50.0F;
+	const float LEFT_BOUNDS = -285.0F;
+	const float RIGHT_BOUNDS = 285.0F;
+	const float TOP_BOUNDS = 250.0F;
+	const float BOTTOM_BOUNDS = 0.0F;
 	
 
 	// Use this for initialization
@@ -57,7 +57,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 			
 		} else if (Input.GetMouseButtonUp (0)) {
 			// User ends a panning movement with the mouse
-			//StartCoroutine("handleGlide");
+			StartCoroutine("handleGlide");
 		}
 	}
 
@@ -68,11 +68,17 @@ public class OrthoPanZoomController : MonoBehaviour {
 			glideOrigin = transform.position;
 			glideMagnitudeX = -getMagnitudeX();
 			glideMagnitudeY = -getMagnitudeY();
-			glideVector = glideOrigin + (getVector() * 10);
+			float xy = Mathf.Clamp(System.Math.Abs((glideMagnitudeX+glideMagnitudeY)*0.001F),2,10);
+			print ("Both:" + xy);
+			glideVector = glideOrigin + (getVector() * xy);
 			vecs.Clear();
 			var fracComplete = 0.0F;
 			while (fracComplete <= 1.0F) {
-				transform.position = Vector3.Lerp(glideOrigin, glideVector, Mathfx.Sinerp(0, 1, fracComplete));
+				Vector3 newPos = Vector3.Lerp(glideOrigin, glideVector, Mathfx.Sinerp(0.0F, 1.0F, fracComplete));
+				if(IsClamped(newPos)) {
+					yield break;
+				}
+				transform.position = newPos;
 				fracComplete = (Time.time - glideStartTime) / GlideJourneyTime;
 				yield return null;
 			}
@@ -80,19 +86,37 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	}
 
+	private Vector3 ClampBounds(Vector3 newPos) {
+		if(	transform.position.x - newPos.x <= LEFT_BOUNDS || 
+		   transform.position.x - newPos.x >= RIGHT_BOUNDS) {
+			newPos.x = 0.0F;
+		}
+		
+		if(	transform.position.y - newPos.y <= BOTTOM_BOUNDS || 
+		   transform.position.y - newPos.y >= TOP_BOUNDS) {
+			newPos.y = 0.0F;
+		}
+		
+		return newPos;
+	}
+
+	private bool IsClamped(Vector3 newPos) {
+		if(	newPos.x <= LEFT_BOUNDS || 
+		   	newPos.x >= RIGHT_BOUNDS) {
+			return true;
+		}
+		
+		if(	newPos.y <= BOTTOM_BOUNDS || 
+		   	newPos.y >= TOP_BOUNDS) {
+			return true;
+		}
+		
+		return false;
+	}
+		
 	void pan (Vector3 touchDeltaPosition) {
 		Vector3 newPos = touchDeltaPosition * Speed;
-		
-		if(	transform.position.x - newPos.x < LEFT_BOUNDS || 
-			transform.position.x - newPos.x > RIGHT_BOUNDS) {
-				newPos.x = 0;
-		}
-
-		if(	transform.position.y - newPos.y < BOTTOM_BOUNDS || 
-			transform.position.y - newPos.y > TOP_BOUNDS) {
-				newPos.y = 0;
-		}
-		
+		newPos = ClampBounds(newPos);
 		transform.Translate (-newPos);			
 	}
 
@@ -121,7 +145,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	bool touchExpired ()
 	{
-		return (Time.time - vecs.Last.Value.Value) > 0.25F;
+		return (Time.time - vecs.Last.Value.Value) > 0.03F;
 	}
 
 	float getMagnitudeX ()
