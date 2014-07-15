@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class OrthoPanZoomController : MonoBehaviour {
 	public float Speed = 0.1F;
+	public RaycastHit hit;
 	public float GlideJourneyTime = 1F;
 	public float MaxOrthSize = 140.0F;
 	public float MinOrthSize = 40.0F;
@@ -13,7 +14,6 @@ public class OrthoPanZoomController : MonoBehaviour {
 	public float TopBounds = 367.0F;
 	public float BottomBounds = -76.0F;
 		
-	bool collideStop = false;
 	LinkedList<KeyValuePair<Vector3, float> > vecs;
 	float glideStartTime;
 	float glideMagnitudeX, glideMagnitudeY;	// glide magnitude
@@ -24,6 +24,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 	void Start () {
 		vecs = new LinkedList<KeyValuePair<Vector3, float> > ();
 		Camera.main.orthographicSize = MidOrthSize;
+		print ("Sleeping Rigidbody: " + rigidbody.IsSleeping());
 	}
 	
 	// Update is called once per frame
@@ -59,12 +60,13 @@ public class OrthoPanZoomController : MonoBehaviour {
 			addLastPos(new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, 0));
 		} else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended) {
 			StartCoroutine("handleGlide");
+			
+			
 		// MOUSIES
 		} else if (Input.GetMouseButtonDown (0)) {
 			// User initiates panning the camera with a mouse
 			StopCoroutine("handleGlide");
 			addLastPos(Input.mousePosition);
-			print("x:" + transform.localPosition.x + ", z:" + transform.localPosition.z);
 		} else if (Input.GetMouseButton (0)) {
 			// User pans with the mouse AFTER initiating
 			Vector3 delta = Input.mousePosition - getLastPos();
@@ -82,19 +84,20 @@ public class OrthoPanZoomController : MonoBehaviour {
 	{
 		if(vecs.Count > 0 && !touchExpired()) {
 			glideStartTime = Time.time;
-			glideOrigin = transform.localPosition;
-			glideMagnitudeX = -getMagnitudeX();
-			glideMagnitudeY = -getMagnitudeY();
-			float xy = Mathf.Clamp(System.Math.Abs((glideMagnitudeX+glideMagnitudeY)*0.001F),2,8);
-			glideVector = glideOrigin + (getVector() * xy);
+			glideOrigin = transform.position;
+			glideVector = vecs.Last.Value.Key - vecs.First.Value.Key;
+			glideVector.Normalize();
+			glideVector.z = glideVector.y;
+			glideVector.y = 0;		
 			vecs.Clear();
 			var fracComplete = 0.0F;
 			while (fracComplete <= 1.0F) {
-				Vector3 newPos = Vector3.Lerp(glideOrigin, glideVector, Mathfx.Sinerp(0.0F, 1.0F, fracComplete));
-				if(IsClamped(newPos)) {
+				var easeParam = Mathfx.Sinerp(1, 0, fracComplete);
+				if(isClamped(-glideVector * easeParam)) {
+					print ("Hit detected");
 					yield break;
-				}
-				transform.localPosition = newPos;
+				}				
+				transform.Translate(-glideVector * easeParam);
 				fracComplete = (Time.time - glideStartTime) / GlideJourneyTime;
 				yield return null;
 			}
@@ -102,38 +105,22 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	}
 
-	Vector3 ClampBounds(Vector3 newPos) {
-		if(	transform.localPosition.x - newPos.x <= LeftBounds || 
-		   transform.localPosition.x - newPos.x >= RightBounds) {
-			newPos.x = 0.0F;
+	bool isClamped (Vector3 v)
+	{
+		if(transform.position.x + v.x < LeftBounds || transform.position.x + v.x > RightBounds) {
+			return true;
 		}
-		
-		if(	transform.localPosition.z - newPos.y <= BottomBounds || 
-		   transform.localPosition.z - newPos.y >= TopBounds) {
-			newPos.y = 0.0F;
-		}
-		
-		return newPos;
-	}
 
-	bool IsClamped(Vector3 newPos) {
-		if(	newPos.x <= LeftBounds || 
-		   	newPos.x >= RightBounds) {
+		if(transform.position.z + v.z < BottomBounds || transform.position.y + v.z > TopBounds) {
 			return true;
-		}
-		
-		if(	newPos.z <= BottomBounds || 
-		   	newPos.z >= TopBounds) {
-			return true;
-		}
+		}		
 		
 		return false;
 	}
-		
+
 	void pan (Vector3 touchDeltaPosition) {
 		Vector3 newPos = touchDeltaPosition * Speed;
-		newPos = ClampBounds(newPos);
-		transform.Translate (new Vector3(-newPos.x, 0, -newPos.y));			
+		transform.Translate (new Vector3(-newPos.x, 0, -newPos.y*2));			
 	}
 
 	void addLastPos(Vector3 lastPos) {
@@ -158,6 +145,16 @@ public class OrthoPanZoomController : MonoBehaviour {
 		return (Time.time - vecs.Last.Value.Value) > 0.03F;
 	}
 
+	float getMagnitude ()
+	{
+		KeyValuePair<Vector3, float> e1, e2;
+		e1 = vecs.Last.Value;
+		e2 = vecs.First.Value;
+		var distance = Vector3.Distance(e2.Key, e1.Key);
+		var time = System.Math.Abs (e1.Value - e2.Value);
+		return distance/time;	
+	}
+
 	float getMagnitudeX ()
 	{
 		KeyValuePair<Vector3, float> e1, e2;
@@ -180,12 +177,17 @@ public class OrthoPanZoomController : MonoBehaviour {
 		return distance/time;
 	}
 
+
 	Vector3 getVector ()
 	{
 		Vector3 e1, e2;
 		e1 = vecs.Last.Value.Key;
 		e2 = vecs.First.Value.Key;
-		var newVec = e2 - e1;
-		return new Vector3(newVec.x, 0, newVec.y);
+		Vector3 newVec = (e2 - e1);
+		newVec.z = newVec.y;
+		newVec.y = 0;
+		newVec = Camera.main.ScreenToWorldPoint(newVec);
+		newVec.y = 0;
+		return newVec;
 	}
 }
