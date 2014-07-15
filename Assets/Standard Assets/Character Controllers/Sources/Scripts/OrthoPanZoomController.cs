@@ -3,23 +3,24 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class OrthoPanZoomController : MonoBehaviour {
-	public float Speed = 0.1F;
-	public RaycastHit hit;
+	public float Speed = 0.1F;	
 	public float GlideJourneyTime = 1F;
 	public float MaxOrthSize = 140.0F;
 	public float MinOrthSize = 40.0F;
 	public float MidOrthSize = 83.0F;
-	public float LeftBounds = -385.0F;
-	public float RightBounds = 385.0F;
-	public float TopBounds = 367.0F;
-	public float BottomBounds = -76.0F;
+	public float LeftBounds;
+	public float RightBounds;
+	public float TopBounds;
+	public float BottomBounds;
 		
 	LinkedList<KeyValuePair<Vector3, float> > vecs;
 	float glideStartTime;
 	float glideMagnitudeX, glideMagnitudeY;	// glide magnitude
 	Vector3 glideVector;	// glide direction vector
 	Vector3 glideOrigin;
-
+	Vector3 initialClick;
+	float initialClickTime;
+	
 	// Use this for initialization
 	void Start () {
 		vecs = new LinkedList<KeyValuePair<Vector3, float> > ();
@@ -56,8 +57,10 @@ public class OrthoPanZoomController : MonoBehaviour {
 				pan (delta);
 			}
 		} else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began) {
+			initialClick = new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, 0);
+			initialClickTime = Time.time;
 			StopCoroutine("handleGlide");
-			addLastPos(new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, 0));
+			addLastPos(initialClick);
 		} else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended) {
 			StartCoroutine("handleGlide");
 			
@@ -65,8 +68,10 @@ public class OrthoPanZoomController : MonoBehaviour {
 		// MOUSIES
 		} else if (Input.GetMouseButtonDown (0)) {
 			// User initiates panning the camera with a mouse
+			initialClick = Input.mousePosition;	
+			initialClickTime = Time.time;		
 			StopCoroutine("handleGlide");
-			addLastPos(Input.mousePosition);
+			addLastPos(initialClick);
 		} else if (Input.GetMouseButton (0)) {
 			// User pans with the mouse AFTER initiating
 			Vector3 delta = Input.mousePosition - getLastPos();
@@ -82,10 +87,13 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	IEnumerator handleGlide ()
 	{
-		if(vecs.Count > 0 && !touchExpired()) {
+		var glideForce = Vector3.Distance(vecs.Last.Value.Key, initialClick);
+		
+		if(vecs.Count > 0 && !touchExpired() && glideForce > 100) {
 			glideStartTime = Time.time;
 			glideOrigin = transform.position;
 			glideVector = vecs.Last.Value.Key - vecs.First.Value.Key;
+			print ("Distance: " + glideForce);
 			glideVector.Normalize();
 			glideVector.z = glideVector.y;
 			glideVector.y = 0;		
@@ -94,7 +102,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 			while (fracComplete <= 1.0F) {
 				var easeParam = Mathfx.Sinerp(1, 0, fracComplete);
 				if(isClamped(-glideVector * easeParam)) {
-					print ("Hit detected");
+					print ("Hit detected: (" + transform.position.x + ", " + transform.position.z + ")");
 					yield break;
 				}				
 				transform.Translate(-glideVector * easeParam);
@@ -111,7 +119,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 			return true;
 		}
 
-		if(transform.position.z + v.z < BottomBounds || transform.position.y + v.z > TopBounds) {
+		if(transform.position.z + v.y*2 < BottomBounds || transform.position.z + v.y*2 > TopBounds) {
 			return true;
 		}		
 		
@@ -120,7 +128,15 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	void pan (Vector3 touchDeltaPosition) {
 		Vector3 newPos = touchDeltaPosition * Speed;
-		transform.Translate (new Vector3(-newPos.x, 0, -newPos.y*2));			
+		if(isClamped(-newPos)) {
+			transform.position = new Vector3(
+				Mathf.Clamp (transform.position.x - newPos.x, LeftBounds, RightBounds),
+				0,
+				Mathf.Clamp(transform.position.z - newPos.y*2, BottomBounds, TopBounds)
+			);
+		} else {
+			transform.Translate (new Vector3(-newPos.x, 0, -newPos.y*2));					
+		}
 	}
 
 	void addLastPos(Vector3 lastPos) {
@@ -142,7 +158,8 @@ public class OrthoPanZoomController : MonoBehaviour {
 
 	bool touchExpired ()
 	{
-		return (Time.time - vecs.Last.Value.Value) > 0.03F;
+		print (Time.time + " : " + initialClickTime + " = " + (float)((float)Time.time-(float)initialClickTime));
+		return (Time.time - initialClickTime) > 0.3F;
 	}
 
 	float getMagnitude ()
