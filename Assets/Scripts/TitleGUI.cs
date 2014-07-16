@@ -13,12 +13,13 @@ public class TitleGUI : MonoBehaviour {
 	void Start() {
 		halfScreenWidth = Screen.width/2;
 		halfButtonWidth = buttonWidth/2;
+		GameManager.Instance.PlaySong();
 	}
 	
 	void OnGUI() {
 		GUI.skin = skin;
 		
-		if(GUI.Button(new Rect(halfScreenWidth-halfButtonWidth,800,buttonWidth,buttonHeight), "Start the Shit")) {
+		if(GUI.Button(new Rect(halfScreenWidth-halfButtonWidth,800,buttonWidth,buttonHeight), "PLAY")) {
 			Application.LoadLevel("Forest");
 		}
 	}

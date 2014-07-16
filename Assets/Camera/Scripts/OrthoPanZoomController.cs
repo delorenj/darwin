@@ -17,7 +17,6 @@ public class OrthoPanZoomController : MonoBehaviour {
 	float glideStartTime;
 	float glideMagnitudeX, glideMagnitudeY;	// glide magnitude
 	Vector3 glideVector;	// glide direction vector
-	Vector3 glideOrigin;
 	Vector3 initialClick;
 	float initialClickTime;
 	
@@ -25,13 +24,12 @@ public class OrthoPanZoomController : MonoBehaviour {
 	void Start () {
 		vecs = new LinkedList<KeyValuePair<Vector3, float> > ();
 		Camera.main.orthographicSize = MidOrthSize;
-		print ("Sleeping Rigidbody: " + rigidbody.IsSleeping());
+		GameManager.Instance.PlaySong();
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		// TOUCHIES
-		
 		if(Input.touchCount == 2) {
 			var d1 = Input.GetTouch(0).deltaPosition;
 			var p1 = Input.GetTouch(0).position;
@@ -91,7 +89,6 @@ public class OrthoPanZoomController : MonoBehaviour {
 		
 		if(vecs.Count > 0 && !touchExpired() && glideForce > 100) {
 			glideStartTime = Time.time;
-			glideOrigin = transform.position;
 			glideVector = vecs.Last.Value.Key - vecs.First.Value.Key;
 			print ("Distance: " + glideForce);
 			glideVector.Normalize();
