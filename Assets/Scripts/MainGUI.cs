@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class MainGUI : MonoBehaviour {
+public class MainGUI : MonoBehaviourBase {
 
 	public GUISkin skin;
 	public int borderPadding;

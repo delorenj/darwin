@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class TitleGUI : MonoBehaviour {
+public class TitleGUI : MonoBehaviourBase {
 
 	public GUISkin skin;
 	
@@ -13,7 +13,7 @@ public class TitleGUI : MonoBehaviour {
 	void Start() {
 		halfScreenWidth = Screen.width/2;
 		halfButtonWidth = buttonWidth/2;
-		GameManager.Instance.PlaySong();
+		GameManager.PlayIntro();
 	}
 	
 	void OnGUI() {

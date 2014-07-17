@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class LevelIndicator : MonoBehaviour {
+public class LevelIndicator : MonoBehaviourBase {
 
 	public GUISkin skin;
 	public int borderPadding;

@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class MusicLoop : MonoBehaviour {
+public class MusicLoop : MonoBehaviourBase {
 
 	public AudioClip SoundClip;
 	private AudioSource SoundSource;

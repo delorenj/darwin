@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class OrthoPanZoomController : MonoBehaviour {
+public class OrthoPanZoomController : MonoBehaviourBase {
 	public float Speed = 0.1F;	
 	public float GlideJourneyTime = 1F;
 	public float MaxOrthSize = 140.0F;
@@ -24,7 +24,7 @@ public class OrthoPanZoomController : MonoBehaviour {
 	void Start () {
 		vecs = new LinkedList<KeyValuePair<Vector3, float> > ();
 		Camera.main.orthographicSize = MidOrthSize;
-		GameManager.Instance.PlaySong();
+		GameManager.PlayIntro();
 	}
 	
 	// Update is called once per frame
